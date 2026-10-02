@@ -1,0 +1,7 @@
+{
+  "tool_name": "PowerShell",
+  "tool_input_preview": "{\"command\":\"$gh=\\\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\\\"; & $gh auth status\"}",
+  "error": "Exit code 1\nYou are not logged into any GitHub hosts. To log in, run: gh auth login",
+  "timestamp": "2026-10-02T06:26:38.277Z",
+  "retry_count": 1
+}
