@@ -558,7 +558,7 @@ function buildGraph(){
   const colorOf=new Map(); let ci=0; for(const e of GV.edges) if(!GV.nodes.get(e.a)?.owner && !colorOf.has(e.a)) colorOf.set(e.a,PAL[ci++%PAL.length]);
   GV.color=colorOf; GV.isolated=[...GV.nodes.keys()].filter(k=>!conn.has(k));
 }
-function defaultCollapsed(){ const set=new Set(); for(const [k,arr] of GV.kids){ if(GV.nodes.get(k)?.owner||!arr.length) continue; const allLeaf=arr.every(c=>!(GV.kids.get(c)||[]).length); if(allLeaf && arr.length>=2) set.add(k); } return set; }
+function defaultCollapsed(){ const set=new Set(); for(const [k,arr] of GV.kids){ if(GV.nodes.get(k)?.owner||!arr.length) continue; const allLeaf=arr.every(c=>!(GV.kids.get(c)||[]).length); if(allLeaf && arr.length>=12) set.add(k); } return set; }
 function visKids(k){ return GV.collapsed.has(k)?[]:(GV.kids.get(k)||[]); }
 function layoutGraph(){
   GV.pos=new Map(); GV.stacked=new Set();
