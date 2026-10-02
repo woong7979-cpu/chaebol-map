@@ -291,7 +291,6 @@ code{font-size:.92em;background:var(--paper);padding:1px 5px;border-radius:4px}
         <button id="vChart" aria-pressed="false">지분도 원본</button>
         <button id="vList" aria-pressed="false">계열사</button>
         <button id="vGloss" aria-pressed="false">용어사전</button>
-        <button id="vData" aria-pressed="false">데이터</button>
       </div>
       <span id="zoomTools">
         <button class="tool" id="zIn" aria-label="확대">＋</button>
@@ -448,7 +447,6 @@ flowchart LR
 </article>
 </div>
       <div class="overview pad" id="glossView" hidden></div>
-      <div class="overview pad" id="dataView" hidden></div>
       <aside class="panel" id="panel" aria-label="회사 상세"></aside>
     </div>
   </main>
@@ -519,43 +517,6 @@ function renderGloss(){
     <p class="g-note" style="margin-top:20px">공정거래위원회 대기업집단 정책 페이지와 공정거래법 조문을 기준으로 쉽게 풀어 쓴 설명입니다. 기업집단포털 용어사전(egroup.go.kr) 원문과 함께 보세요.</p></div>`;
   $('#gq').oninput = renderGloss;
   $('#gl').innerHTML = cats.map(c=>{ const xs=list.filter(x=>x[3]===c); return xs.length?`<h2 style="margin-top:22px">${c}</h2><dl class="gloss-dl">${xs.map(x=>`<dt>${esc(x[0])}<small>${esc(x[1])}</small></dt><dd>${esc(x[2])}</dd>`).join('')}</dl>`:''; }).join('') || '<p>일치하는 용어가 없습니다.</p>';
-}
-function renderData(){
-  const m = EG?.raw?.meta;
-  $('#dataView').innerHTML = `<div class="guide">
-    <h1 style="font-size:34px">데이터 연결</h1>
-    <p class="g-lede" style="font-size:15.5px">지분도와 계열사 이름은 공정위 소유지분도 PDF에서 가져왔습니다. 재무와 지분 구성은 공정위 <strong>기업집단포털 OpenAPI</strong>(공공데이터포털)를 연결하면 공식 수치로 채워집니다.</p>
-    <div class="g-callout"><b>지금 상태</b> — ${m?`${DEMO?'<span class="neg">가상 데이터로 미리보는 중 (실제 수치 아님)</span>':'API 데이터 연결됨'}: ${esc(m.presentnYm||'')} 지정 기준, ${m.counts?.groups||0}개 집단, ${m.counts?.companies||0}개 회사, 동기화 ${esc(m.synced_at||'')}`:'API 데이터 없음. 도면 판독 정보만 표시 중.'}</div>
-    <section><h2>연결하는 방법</h2>
-      <ol class="g-timeline">
-        <li><b>1. 활용신청</b><span>공공데이터포털에서 「공정거래위원회_지정된 대규모기업집단 조회」, 「대규모기업집단 소속회사 재무현황 정보 조회」, 「특수관계인 내부지분 현황 정보 조회」를 신청합니다. 개발계정은 자동승인, 하루 1만 건입니다.</span></li>
-        <li><b>2. 구조 확인</b><span><code>python egroup_sync.py --key 인증키 --inspect</code> 로 응답 필드 이름을 확인합니다.</span></li>
-        <li><b>3. 동기화</b><span><code>python egroup_sync.py --key 인증키 --ym 202605 --html 이파일.html</code> 을 실행하면 데이터가 들어간 <code>.synced.html</code> 이 만들어집니다.</span></li>
-        <li><b>또는</b><span>만들어진 <code>egroup_data.json</code> 을 아래 버튼으로 바로 불러옵니다.</span></li>
-      </ol>
-      <p style="margin-top:14px"><label class="btn" style="display:inline-block">egroup_data.json 불러오기<input type="file" id="egFile" accept=".json,application/json" hidden></label>
-      ${m&&!DEMO?'':'<button class="btn ghost" id="egDemo" style="margin-left:8px">가상 데이터로 화면 미리보기</button>'}
-      ${m?'<button class="btn ghost" id="egClear" style="margin-left:8px">연결 해제</button>':''}</p>
-      <p class="small" id="egMsg"></p>
-    </section>
-    <section><h2>연결되는 API</h2>
-      <table class="g-table"><thead><tr><th>API</th><th>주는 정보</th><th>사이트에서 쓰는 곳</th></tr></thead><tbody>
-        <tr><td>지정된 대규모기업집단 조회<br><code class="small">1130000/appnGroupSttusList</code></td><td>집단명, 집단코드, 계열회사 수, 동일인, 대표회사</td><td>집단 머리글의 공식 소속회사 수와 대표회사</td></tr>
-        <tr><td>소속회사 재무현황 정보 조회<br><code class="small">1130000/financeCompSttusList</code></td><td>대표자, 결산일, 자산·부채·자본총액, 자본금, 매출액, 당기순이익 (별도·개별 재무 기준)</td><td>회사 패널의 공시 재무, 계열사 목록의 재무 열</td></tr>
-        <tr><td>특수관계인 내부지분 현황 조회<br><code class="small">1130000/sllInnerQotaList</code></td><td>친족·임원·비영리법인 등 특수관계인 내부지분</td><td>계열사 탭의 내부지분 구성 막대</td></tr>
-      </tbody></table>
-      <p class="g-note">게시된 웹페이지는 보안 정책상 외부 API를 직접 부를 수 없어서, 동기화 스크립트로 받아 파일에 넣는 방식을 씁니다. 인증키는 페이지에 들어가지 않습니다.</p>
-    </section></div>`;
-  $('#egFile').onchange = async e => { const f=e.target.files[0]; if(!f) return; try{ window.EGROUP = JSON.parse(await f.text()); DEMO=false; applyEgroup(); renderData(); $('#egMsg').textContent='불러왔습니다.'; }catch(err){ $('#egMsg').textContent='JSON을 읽지 못했습니다: '+err.message; } };
-  if ($('#egDemo')) $('#egDemo').onclick = () => { window.EGROUP = demoData(); DEMO=true; applyEgroup(); renderData(); $('#egMsg').innerHTML='<span class="neg">가상 데이터입니다. 화면 구성 확인용이며 실제 수치가 아닙니다.</span> 삼성 집단을 열어 계열사 탭과 회사 패널을 확인하세요.'; };
-  const cl=$('#egClear'); if (cl) cl.onclick = () => { window.EGROUP=null; DEMO=false; EG=null; openGroup(gid); renderData(); };
-}
-function demoData(){
-  const g = DATA[0]; let seed=7; const rnd=()=>{seed=(seed*9301+49297)%233280; return seed/233280;};
-  return {meta:{source:'가상 데이터 (UI 미리보기용)',presentnYm:'202605',synced_at:'-',counts:{groups:1,companies:g.companies.length,inner:5}},
-    groups:[{group_name:g.name,owner:g.owner,rep_company:'(가상) 대표회사',company_count:g.companies.length}],
-    companies:g.companies.map(c=>{const a=Math.round(rnd()*5e6+1e4); return {group_name:g.name,name:c.n.replace(/^★/,''),ceo:'(가상)',fiscal_date:'2025-12-31',assets:a,liabilities:Math.round(a*rnd()*0.8),equity:Math.round(a*0.5),revenue:Math.round(a*rnd()*1.2),net_income:Math.round(a*(rnd()-0.3)*0.1)};}),
-    inner_ownership:[['동일인',1.2],['친족',2.3],['계열회사',48.5],['비영리법인',1.4],['임원',0.1]].map(([h,p])=>({group_name:g.name,holder_type:h,pct:p}))};
 }
 /* ===== 관계도 (interactive ownership graph) ===== */
 function DN(c){ return c.n.replace(/^★/,''); }
@@ -763,7 +724,7 @@ function renderList(){
 $('#list').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const g = +b.dataset.g;
-  if (['learn','gloss','data'].includes(view)) setView(b.classList.contains('ci')?'chart':'graph');
+  if (['learn','gloss'].includes(view)) setView(b.classList.contains('ci')?'chart':'graph');
   if (b.classList.contains('ci')) { openGroup(g, +b.dataset.c, true); }
   else openGroup(g);
   $('#rail').classList.remove('open');
@@ -846,15 +807,15 @@ addEventListener('resize', () => { if (view==='chart') fit(); });
 /* ---------- views ---------- */
 function setView(v){
   view = v;
-  for (const [id,k] of [['vLearn','learn'],['vGraph','graph'],['vChart','chart'],['vList','list'],['vGloss','gloss'],['vData','data']]) $('#'+id).setAttribute('aria-pressed', v===k);
-  $('#stage').hidden = v!=='chart'; $('#graphView').hidden = v!=='graph'; $('#overview').hidden = v!=='list'; $('#learnView').hidden = v!=='learn'; $('#glossView').hidden = v!=='gloss'; $('#dataView').hidden = v!=='data';
+  for (const [id,k] of [['vLearn','learn'],['vGraph','graph'],['vChart','chart'],['vList','list'],['vGloss','gloss']]) $('#'+id).setAttribute('aria-pressed', v===k);
+  $('#stage').hidden = v!=='chart'; $('#graphView').hidden = v!=='graph'; $('#overview').hidden = v!=='list'; $('#learnView').hidden = v!=='learn'; $('#glossView').hidden = v!=='gloss';
   $('#zoomTools').style.display = v==='chart'?'':'none';
-  $('#head').style.display = (v==='learn'||v==='gloss'||v==='data')?'none':'';
+  $('#head').style.display = (v==='learn'||v==='gloss')?'none':'';
   document.querySelector('.hint').style.visibility = v==='chart'?'visible':'hidden';
-  if (v==='gloss') renderGloss(); if (v==='data') renderData(); if (v==='graph') requestAnimationFrame(()=>{ renderGraph(); if(GV.fitNext!==false) gFit(); });
+  if (v==='gloss') renderGloss(); if (v==='graph') requestAnimationFrame(()=>{ renderGraph(); if(GV.fitNext!==false) gFit(); });
   if (v==='chart') requestAnimationFrame(fit);
 }
-$('#vChart').onclick = () => setView('chart'); $('#vList').onclick = () => setView('list'); $('#vLearn').onclick = () => setView('learn'); $('#vGraph').onclick = () => setView('graph'); $('#vGloss').onclick = () => setView('gloss'); $('#vData').onclick = () => setView('data');
+$('#vChart').onclick = () => setView('chart'); $('#vList').onclick = () => setView('list'); $('#vLearn').onclick = () => setView('learn'); $('#vGraph').onclick = () => setView('graph'); $('#vGloss').onclick = () => setView('gloss');
 function tags(c){
   return (c.s?'<span class="tag s">상장</span>':'')+(c.h?'<span class="tag h">지주회사 체제</span>':'')+(c.k==='diamond'?'<span class="tag d">사익편취 규제(20%↑)</span>':'')+(c.k==='pent'?'<span class="tag p">사익편취 규제(자회사)</span>':'')+'';
 }
