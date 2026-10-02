@@ -213,6 +213,7 @@ a{color:var(--accent)}
 [hidden]{display:none!important}
 .gview{flex:1;min-width:0;display:flex}
 .gstage{flex:1;position:relative;overflow:hidden;background:var(--paper);cursor:grab;touch-action:none}
+.gzoom{position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;gap:6px;z-index:5}.gzoom .tool{width:44px;height:44px;padding:0;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}
 .gstage.drag{cursor:grabbing}
 #gsvg{width:100%;height:100%;display:block}
 .gnode{cursor:pointer}
@@ -305,6 +306,7 @@ code{font-size:.92em;background:var(--paper);padding:1px 5px;border-radius:4px}
       <div class="gview" id="graphView" hidden>
         <div class="gstage" id="gstage"><svg id="gsvg" role="application" aria-label="소유 관계도"></svg>
           <div class="g-empty" id="gempty" hidden></div>
+          <div class="gzoom"><button class="tool" id="gzIn" aria-label="확대">＋</button><button class="tool" id="gzOut" aria-label="축소">－</button><button class="tool" id="gzFit" aria-label="화면 맞춤">⤢</button></div>
           <div class="gctrl min" id="gctrl">
             <button class="gc-head" id="gToggleCtrl" aria-expanded="false"><b>관계도 조절</b><span aria-hidden="true">⚙</span></button>
             <div class="gc-body">
@@ -655,27 +657,34 @@ function wrapKo(s,n){ const out=[]; s=String(s); while(s.length>n && out.length<
 function gApply(){ const w=$('#gworld'); if(w) w.setAttribute('transform',`translate(${GV.T.x},${GV.T.y}) scale(${GV.T.s})`); }
 function gFit(){ const r=$('#gstage').getBoundingClientRect(); if(!r.width||!GV.pos.size) return;
   let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(const [k,p] of GV.pos){ if(hidden(k)) continue; x0=Math.min(x0,p.x); y0=Math.min(y0,p.y); x1=Math.max(x1,p.x+NW); y1=Math.max(y1,p.y+NH+14); }
-  const pad=30, W=x1-x0+pad*2, H=y1-y0+pad*2; const s=Math.min(r.width/W, r.height/H, 1.2);
+  const pad=30, W=x1-x0+pad*2, H=y1-y0+pad*2; let s=Math.min(r.width/W, r.height/H, 1.2); if(r.width<700) s=Math.max(s,0.3);
   GV.T={s, x:(r.width-W*s)/2-(x0-pad)*s, y:Math.max(8,(r.height-H*s)/2)-(y0-pad)*s}; gApply(); }
 function emptyGraphHTML(g){ return `<div class="g-empty-in"><h3>${esc(GL.emptyT(g))}</h3><p>${GL.emptyP}</p><button class="btn ghost" id="toOrig">${GL.toOrig}</button></div>`; }
 function bindEmpty(){ const o=$('#toOrig'); if(o) o.onclick=()=>setView('chart'); }
 function loadSavedEdges(){}
 function initGraphUI(){
-  const st=$('#gstage'), svg=$('#gsvg'); let drag=null;
+  const st=$('#gstage'), svg=$('#gsvg'); let drag=null; const ptrs=new Map(); let pinch=null;
   st.addEventListener('wheel',e=>{ e.preventDefault(); const r=st.getBoundingClientRect(); const f=Math.exp(-e.deltaY*0.0015); const s2=Math.max(0.1,Math.min(4,GV.T.s*f)); const k=s2/GV.T.s; const cx=e.clientX-r.left, cy=e.clientY-r.top; GV.T.x=cx-(cx-GV.T.x)*k; GV.T.y=cy-(cy-GV.T.y)*k; GV.T.s=s2; gApply(); },{passive:false});
   svg.addEventListener('pointerdown',e=>{
     const tog=e.target.closest('[data-tog]'); if(tog){ const k=tog.dataset.tog; GV.collapsed.has(k)?GV.collapsed.delete(k):GV.collapsed.add(k); renderGraph(); return; }
+    ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+    if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2}; drag=null; st.classList.add('drag'); return; }
+    if(ptrs.size>2) return;
     const nd=e.target.closest('.gnode');
-    drag={id:e.pointerId,x:e.clientX,y:e.clientY,node:nd?nd.dataset.k:null,moved:false}; svg.setPointerCapture(e.pointerId);
+    drag={id:e.pointerId,x:e.clientX,y:e.clientY,node:nd?nd.dataset.k:null,moved:false};
   });
   svg.addEventListener('pointermove',e=>{
+    if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pinch&&ptrs.size>=2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y)||1, cx=(a.x+b.x)/2, cy=(a.y+b.y)/2; const r=st.getBoundingClientRect();
+      const s2=Math.max(0.1,Math.min(4,GV.T.s*d/pinch.d)), k=s2/GV.T.s, px=cx-r.left, py=cy-r.top;
+      GV.T.x=px-(px-GV.T.x)*k+(cx-pinch.cx); GV.T.y=py-(py-GV.T.y)*k+(cy-pinch.cy); GV.T.s=s2; pinch={d,cx,cy}; gApply(); return; }
     if(!drag||drag.id!==e.pointerId) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
     if(!drag.moved && Math.abs(dx)+Math.abs(dy)<4) return; drag.moved=true; drag.x=e.clientX; drag.y=e.clientY;
     if(drag.node){ const m=GV.manual.get(drag.node)||{dx:0,dy:0}; m.dx+=dx/GV.T.s; m.dy+=dy/GV.T.s; GV.manual.set(drag.node,m);
       if(!drag.raf){ drag.raf=requestAnimationFrame(()=>{ if(drag) drag.raf=null; renderGraph(); }); } }
     else { GV.T.x+=dx; GV.T.y+=dy; gApply(); st.classList.add('drag'); }
   });
-  const up=e=>{ if(!drag) return; const d=drag; drag=null; st.classList.remove('drag');
+  const up=e=>{ ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; if(!ptrs.size) st.classList.remove('drag'); if(!drag) return; const d=drag; drag=null; st.classList.remove('drag');
     if(!d.moved){ if(d.node){ gClick(d.node); } else if(GV.focus){ GV.focus=null; renderGraph(); } } };
   svg.addEventListener('pointerup',up); svg.addEventListener('pointercancel',up);
   svg.addEventListener('keydown',e=>{ const nd=e.target.closest('.gnode'); if(nd&&e.key==='Enter') gClick(nd.dataset.k); });
@@ -688,6 +697,8 @@ function initGraphUI(){
   bind('gLab',e=>{ GV.opt.labels=e.target.checked; renderGraph(); },'change');
   bind('gHx',e=>{ GV.opt.hx=+e.target.value; renderGraph(); });
   bind('gVy',e=>{ GV.opt.vy=+e.target.value; renderGraph(); });
+  const gzoom=f=>{ const r=st.getBoundingClientRect(); const s2=Math.max(0.1,Math.min(4,GV.T.s*f)), k=s2/GV.T.s, cx=r.width/2, cy=r.height/2; GV.T.x=cx-(cx-GV.T.x)*k; GV.T.y=cy-(cy-GV.T.y)*k; GV.T.s=s2; gApply(); };
+  $('#gzIn').onclick=()=>gzoom(1.35); $('#gzOut').onclick=()=>gzoom(1/1.35); $('#gzFit').onclick=()=>gFit();
   $('#gExp').onclick=()=>{ GV.collapsed.clear(); renderGraph(); gFit(); };
   $('#gCol').onclick=()=>{ GV.collapsed=new Set([...GV.kids.keys()].filter(k=>!GV.nodes.get(k)?.owner&&GV.kids.get(k).length&&!GV.nodes.get(GV.prim.get(k))?.owner)); renderGraph(); gFit(); };
   $('#gDef').onclick=()=>{ GV.collapsed=defaultCollapsed(); renderGraph(); gFit(); };
