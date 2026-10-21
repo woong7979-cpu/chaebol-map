@@ -40,6 +40,7 @@ button,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .app{display:grid;grid-template-columns:260px 1fr;height:100%}
 .langsw{display:inline-block;margin-top:8px;padding:4px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink);text-decoration:none}
+.langtop{position:fixed;top:10px;right:14px;z-index:60;padding:5px 13px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:12px;font-weight:600;text-decoration:none;box-shadow:0 1px 6px rgba(0,0,0,.3)}.langtop:hover{border-color:var(--ink)}
 /* rail */
 .rail{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--surface)}
 .brand{padding:18px 18px 12px}
@@ -275,12 +276,12 @@ code{font-size:.92em;background:var(--paper);padding:1px 5px;border-radius:4px}
 </style>
 </head>
 <body>
+<a class="langtop" id="langTop" href="/en/" hreflang="en" onclick="this.href='/en/#g'+gid">English</a>
 <div class="app">
   <aside class="rail" id="rail" aria-label="기업집단 목록">
     <div class="brand">
       <h1>재벌 지도 2026</h1>
       <p>공정위 지정 기업집단 102곳의 지배구조와 계열사, 2026. 5. 1. 기준</p>
-      <a class="langsw" href="/en/" hreflang="en">English</a>
     </div>
     <div class="search"><input id="q" type="search" placeholder="집단 또는 회사 이름 찾기" aria-label="집단 또는 회사 이름 찾기"></div>
     <nav class="list" id="list"></nav>
