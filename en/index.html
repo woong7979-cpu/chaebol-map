@@ -156,6 +156,7 @@ a{color:var(--accent)}
 }
 [hidden]{display:none!important}
 .gview{flex:1;min-width:0;display:flex}
+@media (max-width:700px){.seg{max-width:100%;overflow-x:auto;scrollbar-width:none}.seg::-webkit-scrollbar{display:none}.seg button{white-space:nowrap;flex:0 0 auto}}.gloss-dl{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:10px 18px;margin:8px 0}.gloss-dl dt{font-weight:600}.gloss-dl dt small{display:block;font-weight:400;color:var(--muted);font-size:12px}.gloss-dl dd{margin:0;border-bottom:1px solid var(--line);padding-bottom:10px}@media (max-width:700px){.gloss-dl{grid-template-columns:1fr;gap:2px}.gloss-dl dd{margin-bottom:10px}}
 .gstage{flex:1;position:relative;overflow:hidden;background:var(--paper);cursor:grab;touch-action:none}
 .gzoom{position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;gap:6px;z-index:5}.gzoom .tool{width:44px;height:44px;padding:0;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}
 .langsw{display:inline-block;margin-top:8px;padding:4px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink);text-decoration:none}
@@ -287,6 +288,7 @@ pre.mermaid{background:var(--surface);border:1px solid var(--line);border-radius
         <button id="vGraph" aria-pressed="false">Map</button>
         <button id="vChart" aria-pressed="false">Chart</button>
         <button id="vList" aria-pressed="false">Companies</button>
+        <button id="vGloss" aria-pressed="false">Glossary</button>
       </div>
       <span id="zoomTools">
         <button class="tool" id="zIn" aria-label="Zoom in">＋</button>
@@ -402,6 +404,7 @@ pre.mermaid{background:var(--surface);border:1px solid var(--line);border-radius
 </section>
 </article>
 </div>
+      <div class="overview guide-wrap" id="glossView" hidden></div>
       <div class="overview guide-wrap" id="guideView" hidden><article class="guide">
 <header class="g-hero">
   <p class="g-kicker">A field guide for companies doing business in Korea</p>
@@ -924,7 +927,7 @@ function renderList(){
 $('#list').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const g = +b.dataset.g;
-  if (view==='guide'||view==='intro') setView(b.classList.contains('ci')?'chart':'graph');
+  if (view==='guide'||view==='intro'||view==='gloss') setView(b.classList.contains('ci')?'chart':'graph');
   if (b.classList.contains('ci')) { openGroup(g, +b.dataset.c, true); }
   else openGroup(g);
   $('#rail').classList.remove('open');
@@ -1006,13 +1009,24 @@ addEventListener('resize', () => { if (view==='chart') fit(); });
 document.addEventListener('click', e => { const gv=e.target.closest('[data-go-view]'); if (gv){ setView(gv.dataset.goView); return; } const a = e.target.closest('[data-open-group]'); if (a){ e.preventDefault(); setView('chart'); openGroup(+a.dataset.openGroup); } });
 
 /* ---------- views ---------- */
+const GLOSS = [["Business group","기업집단","A group of companies whose business is de facto controlled by the same person. Commonly called a chaebol or simply a \"group.\"","Basics"],["Controlling person","동일인","The individual (the group head) or company that de facto controls the business group. Must file designation data with the KFTC.","Basics"],["Group head","총수","The term for a controlling person who is an individual. In groups without a group head, a company or legal entity is the controlling person.","Basics"],["Related persons","동일인관련자","The spouse, blood relatives within four degrees, in-laws within three degrees, non-profit entities and affiliates controlled by the controlling person, and officers and other employees.","Basics"],["Controlling family","총수일가","The group head and relatives. A 20% holding by these persons is the threshold for the anti-tunneling rule.","Basics"],["Affiliate","계열회사","A company that belongs to the same business group. Each box on a KFTC ownership chart is one affiliate.","Basics"],["De facto control","사실상 지배","Judged by an ownership test (30% or more together with related persons and the largest shareholder) or a control test (appointing half or more of the executives, or exercising dominant influence).","Basics"],["Disclosure-subject group","공시대상기업집단","A group whose domestic member companies hold total assets of 5 trillion won or more. Disclosure duties and the ban on tunneling apply.","Designation"],["Cross-shareholding-restricted group","상호출자제한기업집단","A group with total assets of 0.5% of GDP or more (12 trillion won in 2026). Extra rules apply, such as the ban on cross-shareholdings and circular shareholdings.","Designation"],["Designation date","지정일","The KFTC designates groups every year by May 1 (by May 15 if unavoidable).","Designation"],["Holding company","지주회사","A company whose main business is controlling the business of domestic companies through stock ownership. It needs assets of 500 billion won or more, with subsidiary shares worth 50% or more of its assets.","Ownership structure"],["Subsidiary tiers","자회사·손자회사·증손회사","Companies one, two and three levels below a holding company (subsidiary, grandchild, great-grandchild). Shaded on the ownership chart.","Ownership structure"],["Internal ownership","내부지분율","The combined stake of the controlling family, affiliates, non-profit entities and officers. The 2026 average is 61.4%.","Ownership structure"],["Cross-shareholding","상호출자","Two affiliates holding each other's shares. Prohibited in cross-shareholding-restricted groups.","Ownership structure"],["Circular shareholding","순환출자","Shareholdings linked in a loop, such as A to B to C to A. New circular shareholdings are prohibited.","Ownership structure"],["Debt guarantee limit","채무보증 제한","A ban on guaranteeing the loans that affiliates take from domestic financial institutions.","Regulation"],["Voting limit of financial affiliates","금융·보험사 의결권 제한","Limits the voting rights that financial and insurance affiliates can exercise on shares they hold in other affiliates.","Regulation"],["Tunneling","사익편취","Giving improper benefits to a company in which the controlling family holds 20% or more, or to its subsidiary that it holds over 50%. Also called \"giving work to related companies\" (일감몰아주기).","Regulation"],["Unfair support","부당지원","Supporting an affiliate with funds, assets or staff on terms more favorable than normal.","Regulation"],["Unfair internal transactions","부당 내부거래","A collective term for tunneling and unfair support.","Regulation"],["Disclosure of large internal transactions","대규모내부거래 공시","Transactions between affiliates above a set size must be approved by the board and then disclosed.","Disclosure"],["Disclosure by unlisted affiliates","비상장회사 중요사항 공시","Disclosure of major matters at unlisted affiliates, such as changes in ownership or financial structure.","Disclosure"],["Group status disclosure","기업집단현황 공시","Regular disclosure of a group's general status, officers and board, shareholdings and internal transactions.","Disclosure"],["Brand royalty","상표권 사용료","Money that affiliates pay to the holding company and others for using the group brand. A main source of income for holding companies.","Disclosure"],["Public-interest foundation","공익법인","Foundations, schools and similar bodies set up by the group. Transactions with affiliates need board approval and disclosure.","Ownership structure"]];
+function renderGloss(){
+  const q = ($('#gq')?.value||'').toLowerCase();
+  const cats=[...new Set(GLOSS.map(x=>x[3]))];
+  const list = GLOSS.filter(x=>!q || (x[0]+x[1]+x[2]).toLowerCase().includes(q));
+  const box = $('#glossView');
+  if (!$('#gq')) box.innerHTML = `<article class="guide"><h1 style="font-size:34px">Glossary</h1><p class="g-lede" style="font-size:15.5px">${GLOSS.length} key terms from Korea's business group rules, with the Korean term beside each one so you can match them to Korean documents and the official charts.</p><input id="gq" type="search" placeholder="Search terms" style="width:100%;max-width:420px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);margin-bottom:10px"><div id="gl"></div>
+    <p class="g-note" style="margin-top:20px">Plain-language explanations based on the KFTC business group policy pages and the Monopoly Regulation and Fair Trade Act. Read them together with the original glossary on the KFTC business group portal (egroup.go.kr).</p></article>`;
+  $('#gq').oninput = renderGloss;
+  $('#gl').innerHTML = cats.map(c=>{ const xs=list.filter(x=>x[3]===c); return xs.length?`<h2 style="margin-top:22px">${c}</h2><dl class="gloss-dl">${xs.map(x=>`<dt>${esc(x[0])}<small>${esc(x[1])}</small></dt><dd>${esc(x[2])}</dd>`).join('')}</dl>`:''; }).join('') || '<p>No matching terms.</p>';
+}
 function setView(v){
   view = v; $('#vChart').setAttribute('aria-pressed', v==='chart'); $('#vList').setAttribute('aria-pressed', v==='list'); $('#vGuide').setAttribute('aria-pressed', v==='guide');
-  $('#stage').hidden = v!=='chart'; $('#graphView').hidden = v!=='graph'; $('#overview').hidden = v!=='list'; $('#guideView').hidden = v!=='guide'; $('#introView').hidden = v!=='intro'; $('#vIntro').setAttribute('aria-pressed', v==='intro'); $('#vGraph').setAttribute('aria-pressed', v==='graph'); $('#zoomTools').style.display = v==='chart'?'':'none';
-  $('#head').style.display = (v==='guide'||v==='intro')?'none':''; document.querySelector('.hint').style.visibility = v==='chart'?'visible':'hidden'; if (v==='graph') requestAnimationFrame(()=>{ renderGraph(); });
+  $('#stage').hidden = v!=='chart'; $('#graphView').hidden = v!=='graph'; $('#overview').hidden = v!=='list'; $('#guideView').hidden = v!=='guide'; $('#glossView').hidden = v!=='gloss'; $('#vGloss').setAttribute('aria-pressed', v==='gloss'); if (v==='gloss') renderGloss(); $('#introView').hidden = v!=='intro'; $('#vIntro').setAttribute('aria-pressed', v==='intro'); $('#vGraph').setAttribute('aria-pressed', v==='graph'); $('#zoomTools').style.display = v==='chart'?'':'none';
+  $('#head').style.display = (v==='guide'||v==='intro'||v==='gloss')?'none':''; document.querySelector('.hint').style.visibility = v==='chart'?'visible':'hidden'; if (v==='graph') requestAnimationFrame(()=>{ renderGraph(); });
   if (v==='chart') requestAnimationFrame(fit);
 }
-$('#vChart').onclick = () => setView('chart'); $('#vList').onclick = () => setView('list'); $('#vGuide').onclick = () => setView('guide'); $('#vIntro').onclick = () => setView('intro'); $('#vGraph').onclick = () => setView('graph');
+$('#vChart').onclick = () => setView('chart'); $('#vList').onclick = () => setView('list'); $('#vGuide').onclick = () => setView('guide'); $('#vGloss').onclick = () => setView('gloss'); $('#vIntro').onclick = () => setView('intro'); $('#vGraph').onclick = () => setView('graph');
 function tags(c){
   return (c.s?'<span class="tag s">Listed</span>':'')+(c.h?'<span class="tag h">Holding structure</span>':'')+(c.k==='diamond'?'<span class="tag d">Anti-tunneling (20%+)</span>':'')+(c.k==='pent'?'<span class="tag p">Anti-tunneling (subsidiary)</span>':'')+'';
 }
